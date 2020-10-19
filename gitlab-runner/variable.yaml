@@ -1,0 +1,10 @@
+namespace: gitlab
+cluster: gitlab.labcerebrone.com
+user: gitlab.labcerebrone.com
+global.hosts.domain: gitlab.labcerebrone.com 
+certmanager-issuer.email: me@gitlab.labcerebrone.com
+zone: gitlab.labcerebrone.com
+record: '*.gitlab.labcerebrone.com'
+gitlabUrl: https://gitlab.gitlab.labcerebrone.com 
+aws_access_key: <aws_key>
+aws_secret_key: <aws_key>

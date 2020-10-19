@@ -1,0 +1,152 @@
+- hosts: localhost 
+  become: true 
+  vars_prompt:
+
+   - name: aws1
+     prompt: "Configure your AWS Credentials\n\n[Note]:If you have already configured your AWS Credentials then just press Enter\n\nEnter AWS Access key ID"
+     private: no
+
+   - name: aws2
+     prompt: "Enter AWS Secret Access key"
+     private: no
+
+   - name: aws3
+     prompt: "Enter Region"
+     private: no
+ 
+   - name: block1
+     prompt: "\nDo you want to configure block storage rook-ceph ? [y/n]"
+     private: no
+     default: "y"
+
+   - name: object
+     prompt: "\nDo you want to configure object storage rook-ceph ? [y/n]"
+     private: no
+     default: "y"
+
+  tasks:
+
+   - name: Install required packages
+     apt:
+      name: "{{ packages }}"
+      state: present
+      update_cache: yes
+     vars:
+      packages:
+      - git
+      - python
+      - PyYAML
+      - gnupg-agent
+      - python-pip
+      - python2-openshift
+
+     ignore_errors: yes
+
+     
+   - pip:
+      name: ['openshift', 'pexpect']
+
+   - name: aws_configure
+     expect:
+        command: aws configure
+        responses:
+             "AWS Access Key ID": "{{ aws1 }}"
+             "AWS Secret Access Key": "{{ aws2 }}"
+             "Default region name": "{{ aws3 }}" 
+             "Default output format": "\n"
+
+    
+   - name: Cloning github rook repository 
+     git:
+       repo: 'https://github.com/rook/rook.git'
+       dest: ~/rook
+       clone: yes	
+       version: release-1.3
+
+   - name: Deploying rook    
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/common.yaml
+       apply: yes
+
+   - name: Deploying rook 
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/operator.yaml
+       apply: yes
+
+   - name: Deploying rook
+     wait_for:
+       timeout: 60
+
+   - name: Deploying rook
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/cluster.yaml
+       apply: yes
+
+   - name: Deploying rook
+     wait_for:
+       timeout: 300
+
+   - name: Deploying rook
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/csi/rbd/storageclass.yaml
+       apply: yes
+     
+   - name: Setting default storage class as rook-ceph-block    
+     get_url:
+       url: https://raw.githubusercontent.com/himank98/poc_cerebrone/master/rook-ceph/rook_sc_block.sh
+       mode: '755'
+       dest: ~/rook_sc_block.sh
+     when: '"{{ block1 }}" == "y"'     
+
+   - name: running script
+     shell: ~/rook_sc_block.sh 
+     when: '"{{ block1 }}" == "y"'
+
+   - name: Deploying rook
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/toolbox.yaml
+       apply: yes  
+
+   - name: Configuring object storage
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/object.yaml
+       apply: yes
+     when: '"{{ object }}" == "y"'
+
+   - name: Configuring object storage
+     wait_for:
+       timeout: 60
+
+   - name: Configuring object storage
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/storageclass-bucket-delete.yaml
+       apply: yes
+     when: '"{{ object }}" == "y"'
+
+   - name: Configuring object storage    
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/object-bucket-claim-delete.yaml
+       apply: yes      
+     when: '"{{ object }}" == "y"'
+
+   - name: Configuring object storage   
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/rgw-external.yaml
+       apply: yes
+     when: '"{{ object }}" == "y"'
+    
+   - name: Configuring object storage   
+     k8s:
+       src: ~/rook/cluster/examples/kubernetes/ceph/object-user.yaml
+       apply: yes
+     when: '"{{ object }}" == "y"'
+       
+   - name: User creds for object storage 
+     get_url:
+       url: https://raw.githubusercontent.com/himank98/poc_cerebrone/master/rook-ceph/rook-user-creds.sh
+       mode: '755'
+       dest: ~/rook-user-creds.sh
+     when: '"{{ object }}" == "y"'
+
+   - shell: ~/rook-user-creds.sh 
+     when: '"{{ object }}" == "y"'

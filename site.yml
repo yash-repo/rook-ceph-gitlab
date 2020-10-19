@@ -1,0 +1,29 @@
+- hosts: localhost
+  become: true
+  vars_prompt:
+
+   - name: aws1
+     prompt: "Configure your AWS Credentials\n\n[Note]:If you have already configured your AWS Credentials then just press Enter\n\nEnter AWS Access key ID"
+     private: no
+
+   - name: aws2
+     prompt: "Enter AWS Secret Access key"
+     private: no
+
+   - name: aws3
+     prompt: "Enter Region"
+     private: no
+ 
+   - name: block1
+     prompt: "\nDo you want to configure block storage rook-ceph ? [y/n]"
+     private: no
+     default: "y"
+
+   - name: object
+     prompt: "\nDo you want to configure object storage rook-ceph ? [y/n]"
+     private: no
+     default: "y"
+
+  roles:
+     - rook_role
+     - gitlab_role

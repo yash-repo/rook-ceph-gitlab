@@ -1,0 +1,11 @@
+hosts: juju
+tasks:
+    - name: install juju
+      snap:
+          name: juju
+          state: present
+<<<<<<< HEAD
+          channel: juju
+=======
+          classic: yes
+>>>>>>> 753e4ea26e81a5e70f2edd4f46e5a9ca5efd0380
