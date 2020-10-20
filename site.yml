@@ -26,4 +26,4 @@
 
   roles:
      - rook_role
-     - gitlab_role
+       #     - gitlab_role
